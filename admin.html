@@ -293,14 +293,18 @@ async function handlePhotos(files){
   const imgs=Array.from(files).filter(f=>f.type.startsWith('image/'));
   if(!imgs.length){setStatus('photoStatus','no images found','err');return;}
   setStatus('photoStatus',`uploading ${imgs.length}...`,'busy');
-  let n=0;
+  let n=0, lastErr='';
   for(const f of imgs){
     try{ await uploadPhoto(f); n++; }
-    catch(e){ setStatus('photoStatus','error: '+f.name,'err'); }
+    catch(e){ lastErr=e.message||JSON.stringify(e); console.error('upload error',e); }
   }
   fileInput.value='';
-  setStatus('photoStatus',`✓ ${n} photo${n!==1?'s':''} uploaded!`,'ok');
-  await renderPhotos();
+  if(n===0){
+    setStatus('photoStatus','error: '+lastErr,'err');
+  } else {
+    setStatus('photoStatus',`✓ ${n} photo${n!==1?'s':''} uploaded!`,'ok');
+    await renderPhotos();
+  }
 }
 
 /* ════ LETTERS ════ */
