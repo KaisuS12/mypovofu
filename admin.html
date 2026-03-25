@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="db.js"></script>
   <style>
     .admin-page { position:relative; z-index:1; min-height:100dvh; display:flex; flex-direction:column; }
 
@@ -208,28 +210,6 @@ const ADMIN_PASSWORD = 'admin';
   window.addEventListener('resize',()=>{r();cr();});r();cr();requestAnimationFrame(d);
 })();
 
-/* ── DB ── */
-const DB_NAME='her-memories', DB_VER=2;
-
-function openDB(){
-  return new Promise((res,rej)=>{
-    const req=indexedDB.open(DB_NAME,DB_VER);
-    req.onupgradeneeded=e=>{
-      const db=e.target.result;
-      ['photos','letters','songs','mystery'].forEach(n=>{
-        if(!db.objectStoreNames.contains(n))
-          db.createObjectStore(n,{keyPath:'id',autoIncrement:true});
-      });
-    };
-    req.onsuccess=e=>res(e.target.result);
-    req.onerror=()=>rej(req.error);
-  });
-}
-function dbAll(db,store){return new Promise((res,rej)=>{const req=db.transaction(store,'readonly').objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
-function dbAdd(db,store,rec){return new Promise((res,rej)=>{const req=db.transaction(store,'readwrite').objectStore(store).add(rec);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
-function dbDel(db,store,id){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
-function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});}
-
 function setStatus(id,msg,type='ok'){
   const el=document.getElementById(id);
   el.textContent=msg; el.className=`status-bar ${type}`; el.style.opacity='1';
@@ -275,16 +255,13 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 
-/* ── Init ── */
-let db;
 async function initAdmin(){
-  db=await openDB();
   await Promise.all([renderPhotos(),renderLetters(),renderSongs(),renderMystery()]);
 }
 
 /* ════ PHOTOS ════ */
 async function renderPhotos(){
-  const photos=await dbAll(db,'photos');
+  const photos = await dbGetAll('photos');
   const grid=document.getElementById('adminGrid');
   const empty=document.getElementById('photoEmpty');
   grid.innerHTML='';
@@ -292,9 +269,9 @@ async function renderPhotos(){
   empty.style.display='none';
   photos.forEach(p=>{
     const cell=document.createElement('div'); cell.className='admin-cell';
-    const img=document.createElement('img'); img.src=p.dataUrl; img.loading='lazy';
+    const img=document.createElement('img'); img.src=p.url; img.loading='lazy';
     const del=document.createElement('button'); del.className='admin-cell__del'; del.textContent='[ del ]';
-    del.addEventListener('click',async()=>{del.textContent='...';await dbDel(db,'photos',p.id);setStatus('photoStatus','deleted ♡','ok');await renderPhotos();});
+    del.addEventListener('click',async()=>{del.textContent='...';await deletePhoto(p.id,p.url);setStatus('photoStatus','deleted ♡','ok');await renderPhotos();});
     const nm=document.createElement('div'); nm.className='admin-cell__name'; nm.textContent=p.name||'photo';
     cell.append(img,del,nm); grid.appendChild(cell);
   });
@@ -317,7 +294,10 @@ async function handlePhotos(files){
   if(!imgs.length){setStatus('photoStatus','no images found','err');return;}
   setStatus('photoStatus',`uploading ${imgs.length}...`,'busy');
   let n=0;
-  for(const f of imgs){try{const d=await readFile(f);await dbAdd(db,'photos',{name:f.name,dataUrl:d,timestamp:Date.now()});n++;}catch(e){setStatus('photoStatus','error: '+f.name,'err');}}
+  for(const f of imgs){
+    try{ await uploadPhoto(f); n++; }
+    catch(e){ setStatus('photoStatus','error: '+f.name,'err'); }
+  }
   fileInput.value='';
   setStatus('photoStatus',`✓ ${n} photo${n!==1?'s':''} uploaded!`,'ok');
   await renderPhotos();
@@ -325,7 +305,7 @@ async function handlePhotos(files){
 
 /* ════ LETTERS ════ */
 async function renderLetters(){
-  const items=await dbAll(db,'letters');
+  const items=await dbGetAll('letters');
   const list=document.getElementById('letterList');
   const empty=document.getElementById('letterEmpty');
   list.innerHTML='';
@@ -338,7 +318,7 @@ async function renderLetters(){
     const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.body||'').slice(0,80)+'...';
     body.append(t,s);
     const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
-    del.addEventListener('click',async()=>{await dbDel(db,'letters',item.id);setStatus('letterStatus','deleted','ok');await renderLetters();});
+    del.addEventListener('click',async()=>{await dbDelete('letters',item.id);setStatus('letterStatus','deleted','ok');await renderLetters();});
     row.append(body,del); list.appendChild(row);
   });
 }
@@ -347,7 +327,7 @@ document.getElementById('saveLetterBtn').addEventListener('click',async()=>{
   const title=document.getElementById('letterTitle').value.trim();
   const body=document.getElementById('letterBody').value.trim();
   if(!title&&!body){setStatus('letterStatus','write something first!','err');return;}
-  await dbAdd(db,'letters',{title,body,timestamp:Date.now()});
+  await dbInsert('letters',{title,body});
   document.getElementById('letterTitle').value='';
   document.getElementById('letterBody').value='';
   setStatus('letterStatus','✓ letter saved ♡','ok');
@@ -356,7 +336,7 @@ document.getElementById('saveLetterBtn').addEventListener('click',async()=>{
 
 /* ════ MUSIC ════ */
 async function renderSongs(){
-  const items=await dbAll(db,'songs');
+  const items=await dbGetAll('songs');
   const list=document.getElementById('songList');
   const empty=document.getElementById('musicEmpty');
   list.innerHTML='';
@@ -366,10 +346,10 @@ async function renderSongs(){
     const row=document.createElement('div'); row.className='list-item';
     const body=document.createElement('div'); body.className='list-item__body';
     const t=document.createElement('div'); t.className='list-item__title'; t.textContent=item.title||'(no title)';
-    const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.artist?item.artist:'')+( item.link?' · '+item.link.slice(0,40):'');
+    const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.artist||'')+( item.link?' · '+item.link.slice(0,40):'');
     body.append(t,s);
     const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
-    del.addEventListener('click',async()=>{await dbDel(db,'songs',item.id);setStatus('musicStatus','deleted','ok');await renderSongs();});
+    del.addEventListener('click',async()=>{await dbDelete('songs',item.id);setStatus('musicStatus','deleted','ok');await renderSongs();});
     row.append(body,del); list.appendChild(row);
   });
 }
@@ -379,7 +359,7 @@ document.getElementById('saveSongBtn').addEventListener('click',async()=>{
   const artist=document.getElementById('songArtist').value.trim();
   const link=document.getElementById('songLink').value.trim();
   if(!title){setStatus('musicStatus','add a song title first!','err');return;}
-  await dbAdd(db,'songs',{title,artist,link,timestamp:Date.now()});
+  await dbInsert('songs',{title,artist,link});
   document.getElementById('songTitle').value='';
   document.getElementById('songArtist').value='';
   document.getElementById('songLink').value='';
@@ -389,7 +369,7 @@ document.getElementById('saveSongBtn').addEventListener('click',async()=>{
 
 /* ════ MYSTERY ════ */
 async function renderMystery(){
-  const items=await dbAll(db,'mystery');
+  const items=await dbGetAll('mystery');
   const list=document.getElementById('mysteryList');
   const empty=document.getElementById('mysteryEmpty');
   list.innerHTML='';
@@ -402,7 +382,7 @@ async function renderMystery(){
     const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.message||'').slice(0,80)+'...';
     body.append(t,s);
     const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
-    del.addEventListener('click',async()=>{await dbDel(db,'mystery',item.id);setStatus('mysteryStatus','deleted','ok');await renderMystery();});
+    del.addEventListener('click',async()=>{await dbDelete('mystery',item.id);setStatus('mysteryStatus','deleted','ok');await renderMystery();});
     row.append(body,del); list.appendChild(row);
   });
 }
@@ -411,7 +391,7 @@ document.getElementById('saveMysteryBtn').addEventListener('click',async()=>{
   const title=document.getElementById('mysteryTitle').value.trim();
   const message=document.getElementById('mysteryMsg').value.trim();
   if(!title&&!message){setStatus('mysteryStatus','add something first!','err');return;}
-  await dbAdd(db,'mystery',{title,message,timestamp:Date.now()});
+  await dbInsert('mystery',{title,message});
   document.getElementById('mysteryTitle').value='';
   document.getElementById('mysteryMsg').value='';
   setStatus('mysteryStatus','✓ mystery saved ♡','ok');

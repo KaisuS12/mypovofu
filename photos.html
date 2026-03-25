@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="db.js"></script>
   <style>
 
     /* ── Photos page overrides ── */
@@ -254,32 +256,6 @@
       resize(); create(); requestAnimationFrame(draw);
     })();
 
-    /* ── IndexedDB ── */
-    const DB_NAME = 'her-memories', DB_VER = 2, STORE = 'photos';
-
-    function openDB() {
-      return new Promise((res, rej) => {
-        const req = indexedDB.open(DB_NAME, DB_VER);
-        req.onupgradeneeded = e => {
-          const db = e.target.result;
-          ['photos','letters','songs','mystery'].forEach(n => {
-            if (!db.objectStoreNames.contains(n))
-              db.createObjectStore(n, { keyPath: 'id', autoIncrement: true });
-          });
-        };
-        req.onsuccess = e => res(e.target.result);
-        req.onerror   = () => rej(req.error);
-      });
-    }
-
-    function dbGetAll(db) {
-      return new Promise((res, rej) => {
-        const req = db.transaction(STORE,'readonly').objectStore(STORE).getAll();
-        req.onsuccess = () => res(req.result);
-        req.onerror   = () => rej(req.error);
-      });
-    }
-
     /* ── Gallery ── */
     const grid      = document.getElementById('photoGrid');
     const empty     = document.getElementById('photosEmpty');
@@ -293,19 +269,14 @@
     let allPhotos    = [];
     let currentIndex = 0;
 
-    openDB().then(db => dbGetAll(db)).then(photos => {
+    dbGetAll('photos').then(photos => {
       allPhotos = photos;
-
-      if (photos.length === 0) {
-        empty.style.display = 'flex';
-        return;
-      }
-
+      if (photos.length === 0) { empty.style.display = 'flex'; return; }
       photos.forEach((photo, i) => {
         const cell = document.createElement('div');
         cell.className = 'photo-cell';
         const img = document.createElement('img');
-        img.src = photo.dataUrl;
+        img.src = photo.url;
         img.alt = photo.name || 'photo';
         img.loading = 'lazy';
         cell.appendChild(img);
