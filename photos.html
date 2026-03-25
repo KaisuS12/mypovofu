@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>★ photos ★</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+
+    /* ── Photos page overrides ── */
+    .photos-page {
+      position: relative;
+      z-index: 1;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 40px;
+    }
+
+    /* top bar */
+    .photos-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px 20px 16px;
+      padding-top: calc(24px + env(safe-area-inset-top));
+      position: sticky;
+      top: 0;
+      background: rgba(15,15,35,0.92);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+      border-bottom: 3px solid var(--pink);
+    }
+
+    .back-btn {
+      background: none;
+      border: 3px solid var(--pink);
+      color: var(--pink);
+      font-family: var(--font);
+      font-size: 0.5rem;
+      padding: 8px 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s, color 0.1s;
+    }
+    .back-btn:active { background: var(--pink); color: var(--bg); }
+
+    .photos-title {
+      font-size: clamp(0.55rem, 2.5vw, 0.8rem);
+      color: var(--pink);
+      letter-spacing: 3px;
+      text-shadow: 2px 2px 0 rgba(255,107,157,0.3);
+    }
+
+    /* grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 14px;
+      flex: 1;
+    }
+
+    @media (min-width: 500px) {
+      .photo-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 800px) {
+      .photo-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* ── Pixel frame card ── */
+    .photo-cell {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: #2a0a1a;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      /* chunky pixel border */
+      border: 4px solid var(--pink);
+      box-shadow: 5px 5px 0 0 var(--pink);
+      padding: 4px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .photo-cell:active {
+      transform: translate(3px, 3px);
+      box-shadow: 2px 2px 0 0 var(--pink);
+    }
+
+    /* corner pixel accents */
+    .photo-cell::before,
+    .photo-cell::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      z-index: 2;
+    }
+    .photo-cell::before { top: -1px;  left: -1px; }
+    .photo-cell::after  { bottom: -1px; right: -1px; }
+
+    .photo-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      image-rendering: auto;
+    }
+
+    /* empty state */
+    .photos-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 60px 32px;
+      text-align: center;
+    }
+
+    .photos-empty__icon { font-size: 3rem; }
+
+    .photos-empty__text {
+      font-size: 0.5rem;
+      color: rgba(255,255,255,0.3);
+      line-height: 2.4;
+      letter-spacing: 1px;
+    }
+
+    /* ── Lightbox ── */
+    .lb {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      padding: 60px 20px 20px;
+    }
+
+    .lb.open { opacity: 1; pointer-events: auto; }
+
+    .lb__img {
+      display: block;
+      max-width: min(90vw, 700px);
+      max-height: 70dvh;
+      width: auto;
+      height: auto;
+      border: 4px solid var(--pink);
+      box-shadow: 6px 6px 0 0 var(--pink);
+    }
+
+    .lb__close {
+      position: absolute;
+      top: calc(16px + env(safe-area-inset-top));
+      right: 16px;
+      background: none;
+      border: 3px solid var(--white);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 0.5rem;
+      padding: 8px 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .lb__close:active { background: var(--white); color: var(--bg); }
+
+    /* prev / next arrows */
+    .lb__nav {
+      display: flex;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .lb__nav button {
+      background: none;
+      border: 3px solid rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.7);
+      font-family: var(--font);
+      font-size: 0.5rem;
+      padding: 10px 16px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.1s, color 0.1s;
+    }
+    .lb__nav button:active { border-color: var(--pink); color: var(--pink); }
+
+    .lb__counter {
+      font-size: 0.4rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+      margin-top: 10px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <canvas class="stars" id="stars"></canvas>
+
+  <div class="photos-page">
+
+    <!-- Top bar -->
+    <div class="photos-bar">
+      <button class="back-btn" onclick="history.back()">&#60; back</button>
+      <span class="photos-title">[ photos ]</span>
+    </div>
+
+    <!-- Photo grid (filled by JS) -->
+    <div class="photo-grid" id="photoGrid"></div>
+
+    <!-- Empty state -->
+    <div class="photos-empty" id="photosEmpty" style="display:none">
+      <div class="photos-empty__icon">📷</div>
+      <p class="photos-empty__text">no photos yet<br>add some to the<br>photos/ folder ♡</p>
+    </div>
+
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lb" id="lb">
+    <button class="lb__close" id="lbClose">[ x ]</button>
+    <img class="lb__img" id="lbImg" src="" alt="" />
+    <div class="lb__nav">
+      <button id="lbPrev">&#60;&#60; prev</button>
+      <button id="lbNext">next &#62;&#62;</button>
+    </div>
+    <p class="lb__counter" id="lbCounter"></p>
+  </div>
+
+  <script>
+    /* ── Starfield ── */
+    (function () {
+      const c = document.getElementById('stars'), x = c.getContext('2d'); let s = [];
+      const resize = () => { c.width = innerWidth; c.height = innerHeight; };
+      const create = () => { s = Array.from({length:100}, () => ({ x:Math.random()*c.width, y:Math.random()*c.height, sz:Math.random()<.6?1:2, p:Math.random()*Math.PI*2, sp:.003+Math.random()*.008 })); };
+      const draw   = () => { x.clearRect(0,0,c.width,c.height); s.forEach(t=>{ t.p+=t.sp; const a=.3+.7*Math.abs(Math.sin(t.p)); x.fillStyle=`rgba(255,255,255,${a.toFixed(2)})`; x.fillRect(Math.round(t.x),Math.round(t.y),t.sz,t.sz); }); requestAnimationFrame(draw); };
+      window.addEventListener('resize',()=>{ resize(); create(); });
+      resize(); create(); requestAnimationFrame(draw);
+    })();
+
+    /* ── IndexedDB ── */
+    const DB_NAME = 'her-memories', DB_VER = 2, STORE = 'photos';
+
+    function openDB() {
+      return new Promise((res, rej) => {
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = e => {
+          const db = e.target.result;
+          ['photos','letters','songs','mystery'].forEach(n => {
+            if (!db.objectStoreNames.contains(n))
+              db.createObjectStore(n, { keyPath: 'id', autoIncrement: true });
+          });
+        };
+        req.onsuccess = e => res(e.target.result);
+        req.onerror   = () => rej(req.error);
+      });
+    }
+
+    function dbGetAll(db) {
+      return new Promise((res, rej) => {
+        const req = db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+        req.onsuccess = () => res(req.result);
+        req.onerror   = () => rej(req.error);
+      });
+    }
+
+    /* ── Gallery ── */
+    const grid      = document.getElementById('photoGrid');
+    const empty     = document.getElementById('photosEmpty');
+    const lb        = document.getElementById('lb');
+    const lbImg     = document.getElementById('lbImg');
+    const lbClose   = document.getElementById('lbClose');
+    const lbPrev    = document.getElementById('lbPrev');
+    const lbNext    = document.getElementById('lbNext');
+    const lbCounter = document.getElementById('lbCounter');
+
+    let allPhotos    = [];
+    let currentIndex = 0;
+
+    openDB().then(db => dbGetAll(db)).then(photos => {
+      allPhotos = photos;
+
+      if (photos.length === 0) {
+        empty.style.display = 'flex';
+        return;
+      }
+
+      photos.forEach((photo, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'photo-cell';
+        const img = document.createElement('img');
+        img.src = photo.dataUrl;
+        img.alt = photo.name || 'photo';
+        img.loading = 'lazy';
+        cell.appendChild(img);
+        cell.addEventListener('click', () => openLb(i));
+        grid.appendChild(cell);
+      });
+    });
+
+    function openLb(index) {
+      currentIndex = index;
+      updateLb();
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLb() {
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function updateLb() {
+      lbImg.src = allPhotos[currentIndex].dataUrl;
+      lbCounter.textContent = `[ ${currentIndex + 1} / ${allPhotos.length} ]`;
+    }
+
+    lbClose.addEventListener('click', closeLb);
+    lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+    document.addEventListener('keydown', e => {
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape')     closeLb();
+      if (e.key === 'ArrowLeft')  { currentIndex = (currentIndex - 1 + allPhotos.length) % allPhotos.length; updateLb(); }
+      if (e.key === 'ArrowRight') { currentIndex = (currentIndex + 1) % allPhotos.length; updateLb(); }
+    });
+    lbPrev.addEventListener('click', () => { currentIndex = (currentIndex - 1 + allPhotos.length) % allPhotos.length; updateLb(); });
+    lbNext.addEventListener('click', () => { currentIndex = (currentIndex + 1) % allPhotos.length; updateLb(); });
+  </script>
+
+</body>
+</html>

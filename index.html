@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>....</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Lock Screen ── -->
+  <div id="lockScreen">
+    <canvas id="lockStars"></canvas>
+    <div class="lock__inner">
+      <p class="lock__hearts">♡ ♡ ♡</p>
+      <h1 class="lock__title">★ mypovofu ★</h1>
+      <p class="lock__prompt" id="lockPrompt"></p>
+      <div class="lock__input-row">
+        <span class="lock__cursor">&#62;</span>
+        <input class="lock__input" id="lockInput" type="text"
+               autocomplete="off" autocorrect="off" autocapitalize="off"
+               spellcheck="false" maxlength="30" placeholder="..." />
+      </div>
+      <p class="lock__hint" id="lockHint"></p>
+      <p class="lock__enter">[ press enter ]</p>
+    </div>
+  </div>
+
+  <!-- Starfield -->
+  <canvas class="stars" id="stars"></canvas>
+
+  <div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <p class="header__hearts">♡ ♡ ♡</p>
+    <h1 class="header__title">my pov</h1>
+    <p class="header__sub">[ choose your adventure ]</p>
+  </header>
+
+  <!-- 2×2 Pixel icon grid -->
+  <main class="grid">
+
+    <!-- 1. Camera -->
+    <button class="tile tile--camera" aria-label="Photos" onclick="location.href='photos.html'">
+      <div class="tile__icon">
+        <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="72" height="63" fill="#ff6b9d">
+          <!-- viewfinder bump -->
+          <rect x="5" y="0" width="5" height="3"/>
+          <!-- flash -->
+          <rect x="1" y="1" width="2" height="2"/>
+          <!-- body -->
+          <rect x="0" y="3" width="16" height="11"/>
+          <!-- lens outer ring cutout -->
+          <rect x="4" y="5" width="8" height="7" fill="#1a0d1f"/>
+          <!-- lens ring -->
+          <rect x="5" y="6" width="6" height="5"/>
+          <!-- lens center -->
+          <rect x="6" y="7" width="4" height="3" fill="#1a0d1f"/>
+          <!-- lens dot -->
+          <rect x="7" y="8" width="2" height="1"/>
+          <!-- shutter button -->
+          <rect x="13" y="4" width="2" height="2" fill="#1a0d1f"/>
+          <rect x="13" y="3" width="2" height="2"/>
+        </svg>
+      </div>
+      <span class="tile__label">photos</span>
+    </button>
+
+    <!-- 2. Envelope / Letter -->
+    <button class="tile tile--envelope" aria-label="Letters" onclick="location.href='letters.html'">
+      <div class="tile__icon">
+        <svg viewBox="0 0 16 12" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="72" height="54" fill="#ffd93d">
+          <!-- body -->
+          <rect x="0" y="3" width="16" height="9"/>
+          <!-- V-flap (step pixels going inward) -->
+          <rect x="0" y="2" width="16" height="1"/>
+          <rect x="1" y="1" width="14" height="1"/>
+          <rect x="2" y="0" width="12" height="1"/>
+          <!-- fold-line shadow left -->
+          <rect x="0" y="3" width="7" height="1" fill="#c8a800"/>
+          <!-- fold-line shadow right -->
+          <rect x="9" y="3" width="7" height="1" fill="#c8a800"/>
+          <!-- heart seal -->
+          <rect x="6" y="6" width="1" height="1" fill="#ff6b9d"/>
+          <rect x="8" y="6" width="1" height="1" fill="#ff6b9d"/>
+          <rect x="5" y="7" width="5" height="1" fill="#ff6b9d"/>
+          <rect x="6" y="8" width="3" height="1" fill="#ff6b9d"/>
+          <rect x="7" y="9" width="1" height="1" fill="#ff6b9d"/>
+        </svg>
+      </div>
+      <span class="tile__label">letters</span>
+    </button>
+
+    <!-- 3. Music Disk (vinyl) -->
+    <button class="tile tile--disk" data-tile="disk" aria-label="Music">
+      <div class="tile__icon">
+        <div class="disk-wrap">
+          <svg class="disk-spin" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="72" height="72" fill="#6bcfff">
+            <!-- outer record body (circle approximated) -->
+            <rect x="4" y="0" width="8" height="1"/>
+            <rect x="2" y="1" width="12" height="1"/>
+            <rect x="1" y="2" width="14" height="2"/>
+            <rect x="0" y="4" width="16" height="8"/>
+            <rect x="1" y="12" width="14" height="2"/>
+            <rect x="2" y="14" width="12" height="1"/>
+            <rect x="4" y="15" width="8" height="1"/>
+            <!-- inner dark groove ring -->
+            <rect x="3" y="3" width="10" height="10" fill="#0d1f26"/>
+            <!-- label circle -->
+            <rect x="4" y="4" width="8" height="8"/>
+            <!-- inner dark circle -->
+            <rect x="5" y="5" width="6" height="6" fill="#0d1f26"/>
+            <!-- center spindle hole -->
+            <rect x="7" y="7" width="2" height="2" fill="#6bcfff"/>
+            <!-- groove lines (dark dashes) -->
+            <rect x="2" y="6" width="1" height="1" fill="#0d1f26"/>
+            <rect x="13" y="9" width="1" height="1" fill="#0d1f26"/>
+            <rect x="2" y="10" width="1" height="1" fill="#0d1f26"/>
+            <!-- shine pixel -->
+            <rect x="4" y="2" width="1" height="1" fill="#ffffff"/>
+          </svg>
+          <!-- music notes floating -->
+          <span class="note note1">♪</span>
+          <span class="note note2">♫</span>
+        </div>
+      </div>
+      <span class="tile__label">music</span>
+    </button>
+
+    <!-- 4. Mystery Box -->
+    <button class="tile tile--mystery" data-tile="mystery" aria-label="Mystery">
+      <div class="tile__icon">
+        <div class="mystery-wrap">
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="72" height="72" fill="#c77dff">
+            <!-- box body -->
+            <rect x="1" y="7" width="14" height="8"/>
+            <!-- box lid -->
+            <rect x="0" y="5" width="16" height="3"/>
+            <!-- ribbon vertical on body -->
+            <rect x="7" y="7" width="2" height="8" fill="#e8b0ff"/>
+            <!-- ribbon horizontal on lid -->
+            <rect x="0" y="6" width="16" height="1" fill="#e8b0ff"/>
+            <!-- bow left loop -->
+            <rect x="3" y="3" width="3" height="2"/>
+            <rect x="4" y="2" width="2" height="1"/>
+            <!-- bow right loop -->
+            <rect x="10" y="3" width="3" height="2"/>
+            <rect x="10" y="2" width="2" height="1"/>
+            <!-- bow knot center -->
+            <rect x="7" y="3" width="2" height="2" fill="#e8b0ff"/>
+            <!-- sparkle stars on box -->
+            <rect x="2" y="9" width="1" height="1" fill="#ffffff"/>
+            <rect x="13" y="11" width="1" height="1" fill="#ffffff"/>
+            <rect x="2" y="13" width="1" height="1" fill="#ffffff"/>
+          </svg>
+          <!-- the pixel "?" overlay -->
+          <span class="mystery-q">?</span>
+        </div>
+      </div>
+      <span class="tile__label">mystery</span>
+    </button>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p> <span class="heart-beat">♡</span></p>
+  </footer>
+
+  </div><!-- /.page -->
+
+  <!-- Pixel popup (coming soon) -->
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup" id="popup">
+      <p class="popup__icon" id="popupIcon">📷</p>
+      <p class="popup__title" id="popupTitle">COMING SOON</p>
+      <p class="popup__sub" id="popupSub">this section is being built<br>with love ♡</p>
+      <button class="popup__close" id="popupClose">[ close ]</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

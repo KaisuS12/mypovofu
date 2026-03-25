@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <title>★ mystery ★</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .mystery-page { position:relative; z-index:1; min-height:100dvh; display:flex; flex-direction:column; }
+
+    .top-bar { display:flex; align-items:center; gap:16px; padding:22px 20px 14px; padding-top:calc(22px + env(safe-area-inset-top)); position:sticky; top:0; background:rgba(15,15,35,.92); backdrop-filter:blur(6px); z-index:10; border-bottom:3px solid var(--purple); }
+    .back-btn { background:none; border:3px solid var(--purple); color:var(--purple); font-family:var(--font); font-size:.45rem; padding:8px 12px; cursor:pointer; letter-spacing:1px; -webkit-tap-highlight-color:transparent; transition:background .1s,color .1s; }
+    .back-btn:active { background:var(--purple); color:var(--bg); }
+    .page-title { font-size:clamp(.5rem,2.5vw,.75rem); color:var(--purple); letter-spacing:3px; text-shadow:2px 2px 0 rgba(199,125,255,.25); }
+
+    /* box grid */
+    .box-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; padding:16px; flex:1; }
+    @media(min-width:500px){ .box-grid { grid-template-columns:repeat(3,1fr); } }
+
+    .mystery-box { position:relative; background:#1a0a2a; border:3px solid var(--purple); box-shadow:5px 5px 0 0 var(--purple); padding:18px 12px 14px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:10px; -webkit-tap-highlight-color:transparent; transition:transform .1s,box-shadow .1s; overflow:hidden; }
+    .mystery-box:active { transform:translate(3px,3px); box-shadow:2px 2px 0 0 var(--purple); }
+    .mystery-box.opened { border-color:#6bff9d; box-shadow:5px 5px 0 0 #6bff9d; }
+    .mystery-box__icon { font-size:2rem; }
+    .mystery-box.opened .mystery-box__icon { animation:spin .4s steps(4) 1; }
+    .mystery-box__title { font-size:.36rem; color:var(--purple); letter-spacing:1px; text-align:center; word-break:break-word; }
+    .mystery-box.opened .mystery-box__title { color:#6bff9d; }
+    .mystery-box__q { position:absolute; bottom:8px; right:10px; font-size:.4rem; color:rgba(199,125,255,.4); animation:questionPulse 1.8s step-end infinite; }
+    .mystery-box.opened .mystery-box__q { display:none; }
+
+    /* sparkles on open */
+    .spark { position:absolute; width:4px; height:4px; background:#fff; pointer-events:none; }
+
+    /* empty */
+    .sec-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:60px 24px; text-align:center; }
+    .sec-empty__icon { font-size:2.5rem; }
+    .sec-empty__text { font-size:.42rem; color:rgba(255,255,255,.25); line-height:2.4; letter-spacing:1px; }
+
+    /* ── Reveal modal ── */
+    .reveal-modal { position:fixed; inset:0; background:rgba(0,0,0,.92); display:flex; align-items:center; justify-content:center; z-index:500; opacity:0; pointer-events:none; transition:opacity .25s; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); }
+    .reveal-modal.open { opacity:1; pointer-events:auto; }
+
+    .reveal-box { background:#0f0a1a; border:4px solid var(--purple); box-shadow:8px 8px 0 0 var(--purple); max-width:460px; width:100%; max-height:80dvh; display:flex; flex-direction:column; overflow:hidden; }
+    .reveal-box__header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:2px solid rgba(199,125,255,.2); }
+    .reveal-box__title { font-size:.5rem; color:var(--purple); letter-spacing:2px; }
+    .reveal-box__close { background:none; border:2px solid var(--purple); color:var(--purple); font-family:var(--font); font-size:.38rem; padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .reveal-box__close:active { background:var(--purple); color:#fff; }
+    .reveal-box__body { padding:20px 16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:14px; align-items:center; }
+    .reveal-box__emoji { font-size:3rem; animation:heartBeat .8s step-end 3; }
+    .reveal-box__text { font-size:.42rem; color:rgba(255,255,255,.85); line-height:2.4; letter-spacing:1px; text-align:center; white-space:pre-wrap; word-break:break-word; }
+    .reveal-box__footer { padding:10px 16px; font-size:.3rem; color:rgba(199,125,255,.3); letter-spacing:1px; text-align:right; border-top:1px solid rgba(199,125,255,.1); }
+
+    @keyframes popIn { 0%{transform:scale(.7);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+    .reveal-box { animation:none; }
+    .reveal-modal.open .reveal-box { animation:popIn .25s cubic-bezier(.34,1.4,.64,1) forwards; }
+  </style>
+</head>
+<body>
+<canvas class="stars" id="stars"></canvas>
+
+<div class="mystery-page">
+  <div class="top-bar">
+    <button class="back-btn" onclick="history.back()">&#60; back</button>
+    <span class="page-title">[ mystery ]</span>
+  </div>
+  <div class="box-grid" id="boxGrid"></div>
+  <div class="sec-empty" id="secEmpty" style="display:none">
+    <div class="sec-empty__icon">🎁</div>
+    <p class="sec-empty__text">no surprises yet<br>check back soon ♡</p>
+  </div>
+</div>
+
+<!-- Reveal modal -->
+<div class="reveal-modal" id="revealModal">
+  <div class="reveal-box">
+    <div class="reveal-box__header">
+      <span class="reveal-box__title" id="revealTitle"></span>
+      <button class="reveal-box__close" id="revealClose">[ x ]</button>
+    </div>
+    <div class="reveal-box__body">
+      <div class="reveal-box__emoji">🎁</div>
+      <p class="reveal-box__text" id="revealText"></p>
+    </div>
+    <div class="reveal-box__footer" id="revealDate"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');let s=[];
+  const r=()=>{c.width=innerWidth;c.height=innerHeight;};
+  const cr=()=>{s=Array.from({length:100},()=>({x:Math.random()*c.width,y:Math.random()*c.height,sz:Math.random()<.6?1:2,p:Math.random()*Math.PI*2,sp:.003+Math.random()*.008}));};
+  const d=()=>{x.clearRect(0,0,c.width,c.height);s.forEach(t=>{t.p+=t.sp;const a=.3+.7*Math.abs(Math.sin(t.p));x.fillStyle=`rgba(255,255,255,${a.toFixed(2)})`;x.fillRect(Math.round(t.x),Math.round(t.y),t.sz,t.sz);});requestAnimationFrame(d);};
+  window.addEventListener('resize',()=>{r();cr();});r();cr();requestAnimationFrame(d);
+})();
+
+const DB_NAME='her-memories',DB_VER=2;
+function openDB(){return new Promise((res,rej)=>{const req=indexedDB.open(DB_NAME,DB_VER);req.onupgradeneeded=e=>{const db=e.target.result;['photos','letters','songs','mystery'].forEach(n=>{if(!db.objectStoreNames.contains(n))db.createObjectStore(n,{keyPath:'id',autoIncrement:true});});};req.onsuccess=e=>res(e.target.result);req.onerror=()=>rej(req.error);});}
+function dbAll(db,store){return new Promise((res,rej)=>{const req=db.transaction(store,'readonly').objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
+
+const openedSet=new Set(JSON.parse(localStorage.getItem('opened-mystery')||'[]'));
+
+openDB().then(db=>dbAll(db,'mystery')).then(items=>{
+  const grid=document.getElementById('boxGrid');
+  const empty=document.getElementById('secEmpty');
+  if(items.length===0){empty.style.display='flex';return;}
+
+  items.forEach(item=>{
+    const box=document.createElement('div'); box.className='mystery-box';
+    if(openedSet.has(item.id)) box.classList.add('opened');
+    const icon=document.createElement('div'); icon.className='mystery-box__icon'; icon.textContent='🎁';
+    const title=document.createElement('div'); title.className='mystery-box__title'; title.textContent=item.title||'a surprise';
+    const q=document.createElement('div'); q.className='mystery-box__q'; q.textContent='?';
+    box.append(icon,title,q);
+    box.addEventListener('click',()=>openBox(box,item));
+    grid.appendChild(box);
+  });
+});
+
+function openBox(box,item){
+  box.classList.add('opened');
+  spawnSparks(box);
+  openedSet.add(item.id);
+  localStorage.setItem('opened-mystery',JSON.stringify([...openedSet]));
+  setTimeout(()=>showReveal(item),300);
+}
+
+function spawnSparks(el){
+  const rect=el.getBoundingClientRect();
+  for(let i=0;i<8;i++){
+    const s=document.createElement('div'); s.className='spark';
+    s.style.cssText=`left:${rect.left+Math.random()*rect.width}px;top:${rect.top+Math.random()*rect.height}px;position:fixed;z-index:999;animation:noteRise .7s ease-out forwards`;
+    document.body.appendChild(s); setTimeout(()=>s.remove(),700);
+  }
+}
+
+const modal=document.getElementById('revealModal');
+function showReveal(item){
+  document.getElementById('revealTitle').textContent=item.title||'a surprise for you';
+  document.getElementById('revealText').textContent=item.message||'';
+  document.getElementById('revealDate').textContent=new Date(item.timestamp).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  modal.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+document.getElementById('revealClose').addEventListener('click',()=>{modal.classList.remove('open');document.body.style.overflow='';});
+modal.addEventListener('click',e=>{if(e.target===modal){modal.classList.remove('open');document.body.style.overflow='';}});
+</script>
+</body>
+</html>

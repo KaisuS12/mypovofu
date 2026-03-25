@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <title>★ admin ★</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .admin-page { position:relative; z-index:1; min-height:100dvh; display:flex; flex-direction:column; }
+
+    /* top bar */
+    .admin-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 16px 12px; padding-top:calc(18px + env(safe-area-inset-top)); position:sticky; top:0; background:rgba(15,15,35,.96); backdrop-filter:blur(6px); z-index:10; border-bottom:3px solid var(--pink); flex-wrap:wrap; }
+    .admin-title { font-size:clamp(.45rem,2vw,.65rem); color:var(--pink); letter-spacing:3px; }
+    .admin-bar-right { display:flex; align-items:center; gap:10px; }
+    .abtn { background:none; border:2px solid var(--pink); color:var(--pink); font-family:var(--font); font-size:.38rem; padding:7px 11px; cursor:pointer; letter-spacing:1px; -webkit-tap-highlight-color:transparent; transition:background .1s,color .1s; }
+    .abtn:hover,.abtn:active { background:var(--pink); color:var(--bg); }
+    .abtn--danger { border-color:#ff4466; color:#ff4466; }
+    .abtn--danger:hover,.abtn--danger:active { background:#ff4466; color:#fff; }
+
+    /* tabs */
+    .tabs { display:flex; overflow-x:auto; border-bottom:2px solid rgba(255,107,157,.2); background:rgba(15,15,35,.9); }
+    .tab-btn { flex:1; min-width:70px; background:none; border:none; color:rgba(255,255,255,.35); font-family:var(--font); font-size:.35rem; padding:12px 6px; cursor:pointer; letter-spacing:1px; border-bottom:3px solid transparent; margin-bottom:-2px; -webkit-tap-highlight-color:transparent; transition:color .15s; white-space:nowrap; }
+    .tab-btn.active { color:var(--pink); border-bottom-color:var(--pink); }
+    .tab-btn:hover { color:rgba(255,107,157,.7); }
+
+    .tab-panel { display:none; flex-direction:column; flex:1; }
+    .tab-panel.active { display:flex; }
+
+    /* shared form */
+    .sec-form { padding:16px; display:flex; flex-direction:column; gap:10px; border-bottom:2px solid rgba(255,107,157,.15); }
+    .px-input,.px-textarea { background:#100820; border:2px solid #3d1a2a; color:#fff; font-family:var(--font); font-size:.42rem; padding:10px 14px; letter-spacing:1px; outline:none; width:100%; transition:border-color .15s; }
+    .px-input:focus,.px-textarea:focus { border-color:var(--pink); }
+    .px-input::placeholder,.px-textarea::placeholder { color:rgba(255,255,255,.2); }
+    .px-textarea { resize:vertical; min-height:90px; line-height:2; }
+    .save-btn { background:var(--pink); color:var(--bg); font-family:var(--font); font-size:.42rem; padding:11px; border:none; cursor:pointer; letter-spacing:2px; -webkit-tap-highlight-color:transparent; transition:opacity .1s; }
+    .save-btn:active { opacity:.75; }
+
+    /* status */
+    .status-bar { margin:6px 16px; font-size:.38rem; min-height:1.4em; letter-spacing:1px; transition:opacity .3s; }
+    .status-bar.ok   { color:#6bff9d; }
+    .status-bar.err  { color:#ff4466; }
+    .status-bar.busy { color:var(--cyan); }
+
+    /* upload zone (photos) */
+    .upload-zone { margin:14px 16px 6px; border:3px dashed var(--pink); padding:22px 16px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; transition:background .15s; -webkit-tap-highlight-color:transparent; }
+    .upload-zone:hover,.upload-zone.drag-over { background:rgba(255,107,157,.07); }
+    .upload-zone__icon { font-size:1.8rem; }
+    .upload-zone__text { font-size:.38rem; color:rgba(255,255,255,.4); line-height:2.2; letter-spacing:1px; }
+
+    /* photo grid */
+    .admin-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding:10px 16px 30px; }
+    @media(min-width:500px){ .admin-grid { grid-template-columns:repeat(3,1fr); } }
+    @media(min-width:800px){ .admin-grid { grid-template-columns:repeat(4,1fr); } }
+    .admin-cell { position:relative; aspect-ratio:1/1; border:3px solid #3d1a2a; background:#1a0d1f; overflow:hidden; }
+    .admin-cell img { width:100%; height:100%; object-fit:cover; display:block; opacity:.85; }
+    .admin-cell__del { position:absolute; top:4px; right:4px; background:rgba(200,20,50,.85); color:#fff; font-family:var(--font); font-size:.32rem; border:none; padding:5px 7px; cursor:pointer; letter-spacing:1px; -webkit-tap-highlight-color:transparent; }
+    .admin-cell__del:active { background:#ff1144; }
+    .admin-cell__name { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.65); font-size:.28rem; color:rgba(255,255,255,.55); padding:3px 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    /* list items (letters / songs / mystery) */
+    .item-list { display:flex; flex-direction:column; gap:0; padding:0 0 40px; }
+    .list-item { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid rgba(255,107,157,.1); }
+    .list-item__body { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+    .list-item__title { font-size:.42rem; color:var(--white); letter-spacing:1px; word-break:break-word; }
+    .list-item__sub { font-size:.32rem; color:rgba(255,255,255,.4); letter-spacing:1px; word-break:break-word; }
+    .list-item__del { flex-shrink:0; background:none; border:2px solid #ff4466; color:#ff4466; font-family:var(--font); font-size:.32rem; padding:5px 8px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .list-item__del:active { background:#ff4466; color:#fff; }
+
+    /* empty */
+    .sec-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:40px 24px; text-align:center; }
+    .sec-empty__icon { font-size:2rem; }
+    .sec-empty__text { font-size:.38rem; color:rgba(255,255,255,.22); line-height:2.4; letter-spacing:1px; }
+
+    /* photo count badge */
+    .count-badge { font-size:.36rem; color:rgba(255,255,255,.35); letter-spacing:1px; }
+
+    /* ── Login screen ── */
+    #adminLock { position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; align-items:center; justify-content:center; }
+    .alock__inner { display:flex; flex-direction:column; align-items:center; gap:20px; padding:32px 24px; text-align:center; max-width:380px; width:100%; }
+    .alock__icon { font-size:2rem; }
+    .alock__title { font-size:clamp(.8rem,4vw,1.1rem); color:var(--pink); text-shadow:3px 3px 0 rgba(255,107,157,.3); letter-spacing:3px; }
+    .alock__sub { font-size:.4rem; color:rgba(255,255,255,.3); letter-spacing:2px; }
+    .alock__row { display:flex; align-items:center; gap:10px; border:3px solid var(--pink); box-shadow:4px 4px 0 0 var(--pink); padding:12px 16px; width:100%; }
+    .alock__cursor { color:var(--pink); font-size:.8rem; }
+    .alock__input { flex:1; background:transparent; border:none; outline:none; font-family:var(--font); font-size:.6rem; color:var(--white); letter-spacing:3px; caret-color:var(--pink); }
+    .alock__input::placeholder { color:rgba(255,255,255,.2); }
+    .alock__hint { font-size:.38rem; color:#ff4466; letter-spacing:2px; opacity:0; transition:opacity .2s; min-height:1.4em; }
+    .alock__enter { font-size:.35rem; color:rgba(255,255,255,.2); letter-spacing:2px; animation:blink 2s step-end infinite; }
+    .alock__row.shake { animation:shake .35s steps(1) forwards; border-color:#ff4466; box-shadow:4px 4px 0 0 #ff4466; }
+    #adminLock.fade-out { animation:lockFadeOut .5s ease forwards; pointer-events:none; }
+  </style>
+</head>
+<body>
+
+<canvas class="stars" id="stars"></canvas>
+
+<!-- Login -->
+<div id="adminLock">
+  <div class="alock__inner">
+    <div class="alock__icon">🔐</div>
+    <h1 class="alock__title">[ admin ]</h1>
+    <p class="alock__sub">enter password</p>
+    <div class="alock__row" id="alockRow">
+      <span class="alock__cursor">&#62;</span>
+      <input class="alock__input" id="alockInput" type="password" autocomplete="off" maxlength="40" placeholder="..."/>
+    </div>
+    <p class="alock__hint" id="alockHint"></p>
+    <p class="alock__enter">[ press enter ]</p>
+  </div>
+</div>
+
+<!-- Admin Panel -->
+<div class="admin-page" id="adminPage" style="display:none">
+
+  <div class="admin-bar">
+    <span class="admin-title">[ admin panel ]</span>
+    <div class="admin-bar-right">
+      <button class="abtn" onclick="location.href='index.html'">&#60; home</button>
+      <button class="abtn abtn--danger" id="logoutBtn">logout</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="photos">📷 photos</button>
+    <button class="tab-btn" data-tab="letters">✉ letters</button>
+    <button class="tab-btn" data-tab="music">💿 music</button>
+    <button class="tab-btn" data-tab="mystery">🎁 mystery</button>
+  </div>
+
+  <!-- ── Photos Tab ── -->
+  <div class="tab-panel active" id="tab-photos">
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-zone__icon">📁</div>
+      <p class="upload-zone__text">drop photos here or tap to pick</p>
+      <button class="save-btn" id="pickBtn" style="margin-top:4px">[ + add photos ]</button>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none"/>
+    </div>
+    <p class="status-bar" id="photoStatus"></p>
+    <div class="admin-grid" id="adminGrid"></div>
+    <div class="sec-empty" id="photoEmpty" style="display:none">
+      <div class="sec-empty__icon">📷</div>
+      <p class="sec-empty__text">no photos yet<br>upload some above ♡</p>
+    </div>
+  </div>
+
+  <!-- ── Letters Tab ── -->
+  <div class="tab-panel" id="tab-letters">
+    <div class="sec-form">
+      <input class="px-input" id="letterTitle" placeholder="letter title..." maxlength="80"/>
+      <textarea class="px-textarea" id="letterBody" placeholder="write your letter here..." maxlength="2000"></textarea>
+      <button class="save-btn" id="saveLetterBtn">[ save letter ]</button>
+    </div>
+    <p class="status-bar" id="letterStatus"></p>
+    <div class="item-list" id="letterList"></div>
+    <div class="sec-empty" id="letterEmpty" style="display:none">
+      <div class="sec-empty__icon">✉️</div>
+      <p class="sec-empty__text">no letters yet<br>write one above ♡</p>
+    </div>
+  </div>
+
+  <!-- ── Music Tab ── -->
+  <div class="tab-panel" id="tab-music">
+    <div class="sec-form">
+      <input class="px-input" id="songTitle" placeholder="song title..." maxlength="100"/>
+      <input class="px-input" id="songArtist" placeholder="artist name..." maxlength="100"/>
+      <input class="px-input" id="songLink" placeholder="link (spotify / youtube) — optional" maxlength="300"/>
+      <button class="save-btn" id="saveSongBtn">[ save song ]</button>
+    </div>
+    <p class="status-bar" id="musicStatus"></p>
+    <div class="item-list" id="songList"></div>
+    <div class="sec-empty" id="musicEmpty" style="display:none">
+      <div class="sec-empty__icon">💿</div>
+      <p class="sec-empty__text">no songs yet<br>add some above ♡</p>
+    </div>
+  </div>
+
+  <!-- ── Mystery Tab ── -->
+  <div class="tab-panel" id="tab-mystery">
+    <div class="sec-form">
+      <input class="px-input" id="mysteryTitle" placeholder="mystery title..." maxlength="80"/>
+      <textarea class="px-textarea" id="mysteryMsg" placeholder="your surprise message..." maxlength="2000"></textarea>
+      <button class="save-btn" id="saveMysteryBtn">[ save mystery ]</button>
+    </div>
+    <p class="status-bar" id="mysteryStatus"></p>
+    <div class="item-list" id="mysteryList"></div>
+    <div class="sec-empty" id="mysteryEmpty" style="display:none">
+      <div class="sec-empty__icon">🎁</div>
+      <p class="sec-empty__text">no mysteries yet<br>add a surprise above ♡</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ══ CHANGE PASSWORD HERE ══ */
+const ADMIN_PASSWORD = 'admin';
+/* ══════════════════════════ */
+
+/* starfield */
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');let s=[];
+  const r=()=>{c.width=innerWidth;c.height=innerHeight;};
+  const cr=()=>{s=Array.from({length:100},()=>({x:Math.random()*c.width,y:Math.random()*c.height,sz:Math.random()<.6?1:2,p:Math.random()*Math.PI*2,sp:.003+Math.random()*.008}));};
+  const d=()=>{x.clearRect(0,0,c.width,c.height);s.forEach(t=>{t.p+=t.sp;const a=.3+.7*Math.abs(Math.sin(t.p));x.fillStyle=`rgba(255,255,255,${a.toFixed(2)})`;x.fillRect(Math.round(t.x),Math.round(t.y),t.sz,t.sz);});requestAnimationFrame(d);};
+  window.addEventListener('resize',()=>{r();cr();});r();cr();requestAnimationFrame(d);
+})();
+
+/* ── DB ── */
+const DB_NAME='her-memories', DB_VER=2;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      ['photos','letters','songs','mystery'].forEach(n=>{
+        if(!db.objectStoreNames.contains(n))
+          db.createObjectStore(n,{keyPath:'id',autoIncrement:true});
+      });
+    };
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=()=>rej(req.error);
+  });
+}
+function dbAll(db,store){return new Promise((res,rej)=>{const req=db.transaction(store,'readonly').objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
+function dbAdd(db,store,rec){return new Promise((res,rej)=>{const req=db.transaction(store,'readwrite').objectStore(store).add(rec);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
+function dbDel(db,store,id){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});}
+
+function setStatus(id,msg,type='ok'){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.className=`status-bar ${type}`; el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';},2500);
+}
+
+/* ── Login ── */
+const alockInput=document.getElementById('alockInput');
+const alockRow=document.getElementById('alockRow');
+const alockHint=document.getElementById('alockHint');
+
+if(sessionStorage.getItem('admin-auth')==='1'){
+  document.getElementById('adminLock').style.display='none';
+  document.getElementById('adminPage').style.display='flex';
+  initAdmin();
+} else { alockInput.focus(); }
+
+alockInput.addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  if(alockInput.value===ADMIN_PASSWORD){
+    sessionStorage.setItem('admin-auth','1');
+    const lock=document.getElementById('adminLock');
+    lock.classList.add('fade-out');
+    setTimeout(()=>{lock.style.display='none';document.getElementById('adminPage').style.display='flex';initAdmin();},500);
+  } else {
+    alockHint.textContent='[ wrong password ]'; alockHint.style.opacity='1';
+    alockRow.classList.add('shake');
+    alockRow.addEventListener('animationend',()=>{alockRow.classList.remove('shake');alockRow.style.cssText='';},{once:true});
+    alockInput.value='';
+    setTimeout(()=>{alockHint.style.opacity='0';},1600);
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click',()=>{sessionStorage.removeItem('admin-auth');location.reload();});
+
+/* ── Tabs ── */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── Init ── */
+let db;
+async function initAdmin(){
+  db=await openDB();
+  await Promise.all([renderPhotos(),renderLetters(),renderSongs(),renderMystery()]);
+}
+
+/* ════ PHOTOS ════ */
+async function renderPhotos(){
+  const photos=await dbAll(db,'photos');
+  const grid=document.getElementById('adminGrid');
+  const empty=document.getElementById('photoEmpty');
+  grid.innerHTML='';
+  if(photos.length===0){empty.style.display='flex';return;}
+  empty.style.display='none';
+  photos.forEach(p=>{
+    const cell=document.createElement('div'); cell.className='admin-cell';
+    const img=document.createElement('img'); img.src=p.dataUrl; img.loading='lazy';
+    const del=document.createElement('button'); del.className='admin-cell__del'; del.textContent='[ del ]';
+    del.addEventListener('click',async()=>{del.textContent='...';await dbDel(db,'photos',p.id);setStatus('photoStatus','deleted ♡','ok');await renderPhotos();});
+    const nm=document.createElement('div'); nm.className='admin-cell__name'; nm.textContent=p.name||'photo';
+    cell.append(img,del,nm); grid.appendChild(cell);
+  });
+}
+
+const fileInput=document.getElementById('fileInput');
+const pickBtn=document.getElementById('pickBtn');
+const uploadZone=document.getElementById('uploadZone');
+
+pickBtn.addEventListener('click',e=>{e.stopPropagation();fileInput.click();});
+uploadZone.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',()=>handlePhotos(fileInput.files));
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');handlePhotos(e.dataTransfer.files);});
+
+async function handlePhotos(files){
+  if(!files||!files.length) return;
+  const imgs=Array.from(files).filter(f=>f.type.startsWith('image/'));
+  if(!imgs.length){setStatus('photoStatus','no images found','err');return;}
+  setStatus('photoStatus',`uploading ${imgs.length}...`,'busy');
+  let n=0;
+  for(const f of imgs){try{const d=await readFile(f);await dbAdd(db,'photos',{name:f.name,dataUrl:d,timestamp:Date.now()});n++;}catch(e){setStatus('photoStatus','error: '+f.name,'err');}}
+  fileInput.value='';
+  setStatus('photoStatus',`✓ ${n} photo${n!==1?'s':''} uploaded!`,'ok');
+  await renderPhotos();
+}
+
+/* ════ LETTERS ════ */
+async function renderLetters(){
+  const items=await dbAll(db,'letters');
+  const list=document.getElementById('letterList');
+  const empty=document.getElementById('letterEmpty');
+  list.innerHTML='';
+  if(items.length===0){empty.style.display='flex';return;}
+  empty.style.display='none';
+  items.forEach(item=>{
+    const row=document.createElement('div'); row.className='list-item';
+    const body=document.createElement('div'); body.className='list-item__body';
+    const t=document.createElement('div'); t.className='list-item__title'; t.textContent=item.title||'(no title)';
+    const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.body||'').slice(0,80)+'...';
+    body.append(t,s);
+    const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
+    del.addEventListener('click',async()=>{await dbDel(db,'letters',item.id);setStatus('letterStatus','deleted','ok');await renderLetters();});
+    row.append(body,del); list.appendChild(row);
+  });
+}
+
+document.getElementById('saveLetterBtn').addEventListener('click',async()=>{
+  const title=document.getElementById('letterTitle').value.trim();
+  const body=document.getElementById('letterBody').value.trim();
+  if(!title&&!body){setStatus('letterStatus','write something first!','err');return;}
+  await dbAdd(db,'letters',{title,body,timestamp:Date.now()});
+  document.getElementById('letterTitle').value='';
+  document.getElementById('letterBody').value='';
+  setStatus('letterStatus','✓ letter saved ♡','ok');
+  await renderLetters();
+});
+
+/* ════ MUSIC ════ */
+async function renderSongs(){
+  const items=await dbAll(db,'songs');
+  const list=document.getElementById('songList');
+  const empty=document.getElementById('musicEmpty');
+  list.innerHTML='';
+  if(items.length===0){empty.style.display='flex';return;}
+  empty.style.display='none';
+  items.forEach(item=>{
+    const row=document.createElement('div'); row.className='list-item';
+    const body=document.createElement('div'); body.className='list-item__body';
+    const t=document.createElement('div'); t.className='list-item__title'; t.textContent=item.title||'(no title)';
+    const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.artist?item.artist:'')+( item.link?' · '+item.link.slice(0,40):'');
+    body.append(t,s);
+    const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
+    del.addEventListener('click',async()=>{await dbDel(db,'songs',item.id);setStatus('musicStatus','deleted','ok');await renderSongs();});
+    row.append(body,del); list.appendChild(row);
+  });
+}
+
+document.getElementById('saveSongBtn').addEventListener('click',async()=>{
+  const title=document.getElementById('songTitle').value.trim();
+  const artist=document.getElementById('songArtist').value.trim();
+  const link=document.getElementById('songLink').value.trim();
+  if(!title){setStatus('musicStatus','add a song title first!','err');return;}
+  await dbAdd(db,'songs',{title,artist,link,timestamp:Date.now()});
+  document.getElementById('songTitle').value='';
+  document.getElementById('songArtist').value='';
+  document.getElementById('songLink').value='';
+  setStatus('musicStatus','✓ song saved ♡','ok');
+  await renderSongs();
+});
+
+/* ════ MYSTERY ════ */
+async function renderMystery(){
+  const items=await dbAll(db,'mystery');
+  const list=document.getElementById('mysteryList');
+  const empty=document.getElementById('mysteryEmpty');
+  list.innerHTML='';
+  if(items.length===0){empty.style.display='flex';return;}
+  empty.style.display='none';
+  items.forEach(item=>{
+    const row=document.createElement('div'); row.className='list-item';
+    const body=document.createElement('div'); body.className='list-item__body';
+    const t=document.createElement('div'); t.className='list-item__title'; t.textContent=item.title||'(no title)';
+    const s=document.createElement('div'); s.className='list-item__sub'; s.textContent=(item.message||'').slice(0,80)+'...';
+    body.append(t,s);
+    const del=document.createElement('button'); del.className='list-item__del'; del.textContent='[ del ]';
+    del.addEventListener('click',async()=>{await dbDel(db,'mystery',item.id);setStatus('mysteryStatus','deleted','ok');await renderMystery();});
+    row.append(body,del); list.appendChild(row);
+  });
+}
+
+document.getElementById('saveMysteryBtn').addEventListener('click',async()=>{
+  const title=document.getElementById('mysteryTitle').value.trim();
+  const message=document.getElementById('mysteryMsg').value.trim();
+  if(!title&&!message){setStatus('mysteryStatus','add something first!','err');return;}
+  await dbAdd(db,'mystery',{title,message,timestamp:Date.now()});
+  document.getElementById('mysteryTitle').value='';
+  document.getElementById('mysteryMsg').value='';
+  setStatus('mysteryStatus','✓ mystery saved ♡','ok');
+  await renderMystery();
+});
+</script>
+</body>
+</html>
